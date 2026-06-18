@@ -5,7 +5,7 @@
 
 自动检查并续期 ByteNut 免费游戏服务器的 GitHub Actions 脚本。支持多账号、多种代理协议、离线自动开机和 Telegram 通知等功能。
 
-## ✨ 功能特性
+## ✨ 功能HAHAH
 
 - ✅ 多账号支持
 - ✅ 自动登录（处理 Cloudflare Turnstile 验证）
