@@ -511,6 +511,47 @@ class BytenutRenewal:
             self.log(f"广告验证异常: {e}")
             return True
 
+    def find_login_fields(self, sb, timeout=60):
+        user_selectors = [
+            'input[placeholder="Username"]',
+            'input[placeholder*="Username" i]',
+            'input[placeholder*="Email" i]',
+            'input[name*="username" i]',
+            'input[name*="email" i]',
+            'input[type="email"]',
+            'input[type="text"]',
+        ]
+        pass_selectors = [
+            'input[placeholder="Password"]',
+            'input[placeholder*="Password" i]',
+            'input[name*="password" i]',
+            'input[type="password"]',
+        ]
+
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            self.remove_overlay_ads(sb)
+            for user_sel in user_selectors:
+                for pass_sel in pass_selectors:
+                    try:
+                        if (sb.is_element_visible(user_sel)
+                                and sb.is_element_visible(pass_sel)):
+                            return user_sel, pass_sel
+                    except Exception:
+                        pass
+            time.sleep(2)
+
+        try:
+            current_url = sb.get_current_url()
+        except Exception:
+            current_url = "unknown"
+        try:
+            title = sb.get_title()
+        except Exception:
+            title = "unknown"
+        self.log(f"Login form not found. url={current_url} title={title}")
+        return None, None
+
     # ========== 导航 + 等待就绪 ==========
     def navigate_to_panel(self, sb, server_id):
         url = f"https://www.bytenut.com/free-gamepanel/{server_id}"
@@ -785,10 +826,17 @@ class BytenutRenewal:
                 try:
                     # --- 登录 ---
                     sb.uc_open_with_reconnect(URL_LOGIN_PANEL, reconnect_time=5)
-                    sb.wait_for_element_visible(
-                        'input[placeholder="Username"]', timeout=25)
-                    sb.type('input[placeholder="Username"]', user)
-                    sb.type('input[placeholder="Password"]', pwd)
+                    user_sel, pass_sel = self.find_login_fields(sb, timeout=60)
+                    if not user_sel or not pass_sel:
+                        self.send_tg("❌", "Login form not found", user,
+                                     "unknown", "unknown",
+                                     "ByteNut login page did not show username/password fields.",
+                                     screenshot=self.shot(
+                                         sb, f"login_form_missing_{idx}.png"))
+                        continue
+                    self.log(f"Login fields found: {user_sel} / {pass_sel}")
+                    sb.type(user_sel, user)
+                    sb.type(pass_sel, pwd)
                     sb.click('//button[contains(., "Sign In")]')
                     time.sleep(5)
                     if "/auth/login" in sb.get_current_url():
